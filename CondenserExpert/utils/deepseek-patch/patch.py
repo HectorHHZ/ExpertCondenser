@@ -1,8 +1,10 @@
+
 from __future__ import annotations
 
 import logging
 import sys
 from pathlib import Path
+from typing import Union
 
 import torch
 import torch.distributed as dist
@@ -19,20 +21,22 @@ logger = logging.getLogger(__name__)
 
 def select_forced_experts_deepseek(
     gate_module,
-    num_forced_experts,
+    num_forced_experts: Union[int, str, None],
     highest: bool = False,
 ) -> torch.Tensor:
-    """Select forced experts for DeepSeek V2 MoE routing."""
+    """Select lowest-bias experts as forced activation experts for DeepSeek V2."""
     if not getattr(gate_module, "forced_experts_initialized", False) and hasattr(gate_module, "bias"):
         if torch.all(gate_module.bias == 0):
             logger.warning("Gate bias all zeros; delay forced expert selection")
             return gate_module.forced_expert_indices
 
         layer_name = getattr(gate_module, "_layer_name", "unknown_layer")
-        if isinstance(num_forced_experts, int):
+        if isinstance(num_forced_experts, str):
+            layer_name = num_forced_experts
+            forced_count = getattr(gate_module, "num_forced_experts", 0)
+        elif isinstance(num_forced_experts, int) and num_forced_experts > 0:
             forced_count = num_forced_experts
         else:
-            layer_name = num_forced_experts or layer_name
             forced_count = getattr(gate_module, "num_forced_experts", 0)
 
         if forced_count <= 0:
@@ -78,7 +82,7 @@ def patch_deepseek_model(
                     expanded = flat.repeat_interleave(experts_per_tok, dim=0)
                     y = torch.empty_like(expanded)
                     for expert_idx, expert in enumerate(self.experts):
-                        mask = flat_idx == expert_idx
+                        mask = (flat_idx == expert_idx)
                         if mask.any():
                             y[mask] = expert(expanded[mask])
                     y = (y.view(*topk_weight.shape, -1) * topk_weight.unsqueeze(-1)).sum(dim=1)
@@ -94,7 +98,7 @@ def patch_deepseek_model(
             patched += 1
 
         elif cls_name == "MoEGate":
-            if getattr(model_args, "add_aux_free_loss", False) and not getattr(model_args, "sinkhorn_routing", False):
+            if getattr(model_args, "add_aux_free_loss", False):
                 if not hasattr(module, "bias"):
                     module.bias_update_speed = bias_update_speed
                     module.register_buffer("bias", torch.zeros(module.n_routed_experts), persistent=True)
@@ -104,11 +108,11 @@ def patch_deepseek_model(
                     if not hasattr(module, "forced_expert_indices"):
                         module.register_buffer(
                             "forced_expert_indices",
-                            torch.full((num_forced_experts,), -1, dtype=torch.long),
+                            torch.full((num_forced_experts,), -1, dtype=torch.long),  # long!
                             persistent=True,
                         )
                     module.forced_experts_initialized = False
-                    module._layer_name = name
+                    module._layer_name = name  # optional for logging
 
                 def patched_gate_forward(self, hidden_states):  # type: ignore[override]
                     bsz, seq_len, hidden = hidden_states.shape
@@ -116,6 +120,7 @@ def patch_deepseek_model(
 
                     logits = F.linear(flat.float(), self.weight.float(), None)
                     if hasattr(self, "bias"):
+                        # keep bias on same device
                         logits = logits + self.bias.to(logits.device)
 
                     if getattr(self, "topk_method", "greedy") == "group_limited_greedy":
@@ -163,7 +168,7 @@ def patch_deepseek_model(
                     if self.training and hasattr(self, "bias") and getattr(self, "bias_update_speed", 0) > 0:
                         with torch.no_grad():
                             rw = F.softmax(logits, dim=-1, dtype=torch.float)
-                            usage = rw.sum(dim=0)
+                            usage = rw.sum(dim=0)  # [n_experts]
                             if dist.is_initialized() and dist.get_world_size() > 1:
                                 dist.all_reduce(usage, op=dist.ReduceOp.SUM)
                                 usage = usage / dist.get_world_size()
@@ -177,9 +182,6 @@ def patch_deepseek_model(
 
                 module.forward = patched_gate_forward.__get__(module, type(module))
                 patched += 1
-
-            if getattr(model_args, "sinkhorn_routing", False) and not getattr(model_args, "add_aux_free_loss", False):
-                module.topk_method = "sinkhorn"
 
     logger.info("Patched %d DeepSeek modules", patched)
     return model

@@ -1,16 +1,54 @@
-# Finetuning-MOE
+## Project Structure
 
-## Directory Overview
-- `qwen-patch/patch.py`: Overrides Qwen2 sparse MoE blocks to add aux-free forward passes, bias updates, optional forced experts, and a Sinkhorn routing variant.
-- `deepseek-patch/patch.py`: Monkey-patches DeepSeek V2 MoE modules to remove aux losses, inject learnable bias terms, and enable forced expert activation across routing modes.
-- `olmoe-patch/patch.py`: Extends the Olmoe sparse block with aux-free routing, bias tracking hooks, and a manual bias update helper for post-optimizer steps.
-- `utils/moe_utils.py`: Helpers for persisting and restoring MoE bias tensors, including optional downloads from the Hugging Face Hub and distributed-safe saves.
+```
+CondenserExpert/
+├── sft_unified.py          # Unified SFT training entrypoint
+├── configs.py              # Extended SFTConfig and GRPOConfig
+├── utils/
+│   ├── __init__.py         # Package exports (patches, bias utilities)
+│   ├── moe_utils.py        # MoE bias state save/load helpers
+│   ├── model_utils.py      # Tokenizer and model loading utilities
+│   ├── callbacks.py        # Training callbacks (hub push, benchmarks)
+│   ├── evaluation.py       # LightEval benchmark integration
+│   ├── hub.py              # Hugging Face Hub upload utilities
+│   ├── import_utils.py     # Optional dependency checks
+│   ├── wandb_logging.py    # Weights & Biases setup
+│   ├── deepseek-patch/     # Aux-free routing patch for DeepSeek V2
+│   ├── olmoe-patch/        # Aux-free routing patch for OLMoE
+│   └── qwen-patch/         # Aux-free routing patch for Qwen2-MoE
+└── tests/                  # Unit tests for each patch
+```
+
+
+## Installation
+
+```bash
+pip install torch transformers datasets trl huggingface_hub accelerate
+```
+
+## Usage
+
+```bash
+accelerate launch \
+  --num_processes 8 \
+  --config_file recipes/accelerate_configs/zero3_offload.yaml \
+  CondenserExpert/sft_unified.py \
+  --model_name_or_path deepseek-ai/DeepSeek-V2-Lite \
+  --dataset_name HuggingFaceH4/Bespoke-Stratos-17k \
+  --learning_rate 2.0e-5 \
+  --num_train_epochs 1 \
+  --packing \
+  --max_seq_length 1024 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 8 \
+  --gradient_checkpointing \
+  --bf16 \
+  --output_dir output/deepseek-v2-lite-sft
+```
 
 ## Tests
-- `tests/test_qwen_patch.py`: Confirms the Qwen aux-free block picks the lowest-bias experts and records metadata when forced experts are enabled.
-- `tests/test_deepseek_patch.py`: Checks that the DeepSeek gate patch selects and logs forced experts consistent with the aux-free routing logic.
-- `tests/test_olmoe_patch.py`: Exercises the Olmoe aux-free block’s forced expert selection and record keeping.
 
-### Running
-1. Ensure `pytest` is installed (e.g. `pip install pytest`).
-2. From the repository root, run `pytest tests` to execute the suite.
+```bash
+pip install pytest
+pytest CondenserExpert/tests/
+```
