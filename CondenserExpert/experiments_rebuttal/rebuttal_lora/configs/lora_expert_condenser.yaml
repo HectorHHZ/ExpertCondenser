@@ -1,0 +1,69 @@
+# LoRA + ExpertCondenser on Qwen1.5-MoE-A2.7B / Math-7K.
+# Phase-2 fine-tuning from the same Phase-1 model used in Tab.1.
+# Combines LoRA with aux-free routing + r=2 condenser experts.
+
+model_name_or_path: Anonymous/Qwen1.5-MOE-aux-free-sft-math7k-1e-3-gamma-1epoch
+trust_remote_code: true
+model_revision: main
+torch_dtype: bfloat16
+attn_implementation: "flash_attention_2"
+
+dataset_name: Anonymous/math7k
+preprocessing_num_workers: 48
+
+# Aux-free + condenser
+bias_update_speed: 5e-5
+remove_aux_loss: true
+add_aux_free_loss: true
+enable_forced_experts: true
+num_forced_experts: 2
+
+# LoRA (standard rank-32 setting)
+use_peft: true
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lora_target_modules:
+- q_proj
+- k_proj
+- v_proj
+- o_proj
+- up_proj
+- down_proj
+- gate_proj
+lora_task_type: CAUSAL_LM
+
+# SFT trainer config
+bf16: true
+do_eval: true
+eval_strategy: 'no'
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: true
+hub_model_id: Qwen1.5-MOE-rebuttal-lora-expert-condenser-math7k
+hub_strategy: every_save
+learning_rate: 1.0e-04
+log_level: info
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine_with_min_lr
+lr_scheduler_kwargs:
+  min_lr_rate: 0.1
+packing: false
+max_length: 4096
+max_steps: -1
+num_train_epochs: 1
+output_dir: <PATH>
+overwrite_output_dir: true
+per_device_eval_batch_size: 16
+per_device_train_batch_size: 4
+push_to_hub: false
+ddp_timeout: 1800000000
+report_to:
+- "none"
+save_strategy: epoch
+save_total_limit: 1
+seed: 1234
+use_liger: false
+warmup_ratio: 0.1

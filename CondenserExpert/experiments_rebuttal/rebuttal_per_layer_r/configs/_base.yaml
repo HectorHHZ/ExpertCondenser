@@ -1,0 +1,47 @@
+# Shared Phase-2 settings for the per-layer-r ablation.
+# Each config inherits these and overrides hub_model_id / output_dir / num_forced_experts.
+# PER_LAYER_R_GROUPS env var (e.g. "4,2,0") controls the actual per-layer r.
+
+# NOTE: yaml inheritance is not supported by TrlParser; we just duplicate fields
+# in each config. Keep this file as documentation of the shared baseline.
+
+# model_name_or_path: Anonymous/Qwen1.5-MOE-aux-free-sft-math7k-1e-3-gamma-1epoch
+# trust_remote_code: true
+# torch_dtype: bfloat16
+# attn_implementation: "flash_attention_2"
+# dataset_name: Anonymous/math7k
+# preprocessing_num_workers: 48
+# bias_update_speed: 5e-5
+# remove_aux_loss: true
+# add_aux_free_loss: true
+# enable_forced_experts: true
+# bf16: true
+# do_eval: true
+# eval_strategy: 'no'
+# gradient_accumulation_steps: 1
+# gradient_checkpointing: true
+# gradient_checkpointing_kwargs:
+#   use_reentrant: true
+# learning_rate: 1.0e-05
+# log_level: info
+# logging_steps: 1
+# logging_strategy: steps
+# lr_scheduler_type: cosine_with_min_lr
+# lr_scheduler_kwargs:
+#   min_lr_rate: 0.1
+# packing: false
+# max_length: 4096
+# max_steps: -1
+# num_train_epochs: 1
+# overwrite_output_dir: true
+# per_device_eval_batch_size: 16
+# per_device_train_batch_size: 4
+# push_to_hub: false
+# ddp_timeout: 1800000000
+# report_to:
+# - wandb
+# save_strategy: epoch
+# save_total_limit: 1
+# seed: 1234
+# use_liger: false
+# warmup_ratio: 0.1

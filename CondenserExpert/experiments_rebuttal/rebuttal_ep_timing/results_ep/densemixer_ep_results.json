@@ -1,0 +1,281 @@
+{
+  "mode": "densemixer",
+  "world_size": 8,
+  "tokens_per_rank": 4096,
+  "total_tokens": 32768,
+  "num_steps": 20,
+  "num_warmup": 5,
+  "hidden": 2048,
+  "intermediate": 1408,
+  "total_routed_experts": 64,
+  "top_k": 4,
+  "num_condenser": 0,
+  "local_n_experts": 8,
+  "peak_memory_gb_max_rank": 9.99682903289795,
+  "route": {
+    "median_ms": 0.23670343216508627,
+    "mean_ms": 0.2399187535047531,
+    "std_ms": 0.013461113873005158
+  },
+  "dispatch": {
+    "median_ms": 2.9876554617658257,
+    "mean_ms": 3.4540572902187705,
+    "std_ms": 1.2117988886374875
+  },
+  "compute": {
+    "median_ms": 14.18444694718346,
+    "mean_ms": 14.6646770008374,
+    "std_ms": 1.6223649684612091
+  },
+  "combine": {
+    "median_ms": 3.0940439901314676,
+    "mean_ms": 3.5981619847007096,
+    "std_ms": 1.642223381066687
+  },
+  "condenser": {
+    "median_ms": 0.0,
+    "mean_ms": 0.0,
+    "std_ms": 0.0
+  },
+  "total_fwd": {
+    "median_ms": 30.25977552169934,
+    "mean_ms": 31.804460746934637,
+    "std_ms": 3.111760081130137
+  },
+  "total_bwd": {
+    "median_ms": 36.74001700710505,
+    "mean_ms": 39.21843389980495,
+    "std_ms": 5.7898170388045
+  },
+  "bytes_dispatch_total_per_step": {
+    "median_bytes": 7516192768.0,
+    "mean_bytes": 7516192768.0
+  },
+  "bytes_combine_total_per_step": {
+    "median_bytes": 7516192768.0,
+    "mean_bytes": 7516192768.0
+  },
+  "all_steps": [
+    {
+      "route": 0.0002616361016407609,
+      "dispatch": 0.002985910978168249,
+      "compute": 0.014434159966185689,
+      "combine": 0.0033165588974952698,
+      "condenser": 0.0,
+      "total_fwd": 0.03039036295376718,
+      "total_bwd": 0.035628546960651875,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00023668690118938684,
+      "dispatch": 0.002977416035719216,
+      "compute": 0.014161737984977663,
+      "combine": 0.0030303539242595434,
+      "condenser": 0.0,
+      "total_fwd": 0.030322804930619895,
+      "total_bwd": 0.03671740798745304,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002458889503031969,
+      "dispatch": 0.007506681024096906,
+      "compute": 0.016244396101683378,
+      "combine": 0.005940559902228415,
+      "condenser": 0.0,
+      "total_fwd": 0.04012138303369284,
+      "total_bwd": 0.03676262602675706,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002385940169915557,
+      "dispatch": 0.0029879349749535322,
+      "compute": 0.014124960987828672,
+      "combine": 0.003076980938203633,
+      "condenser": 0.0,
+      "total_fwd": 0.0313864880008623,
+      "total_bwd": 0.04709279607050121,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00024200906045734882,
+      "dispatch": 0.0029785989318042994,
+      "compute": 0.014173227013088763,
+      "combine": 0.0030920939752832055,
+      "condenser": 0.0,
+      "total_fwd": 0.03019549895543605,
+      "total_bwd": 0.04881927091628313,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002350939903408289,
+      "dispatch": 0.0029645380564033985,
+      "compute": 0.01416446000803262,
+      "combine": 0.0030998840229585767,
+      "condenser": 0.0,
+      "total_fwd": 0.030146204051561654,
+      "total_bwd": 0.05514311196748167,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002357600023970008,
+      "dispatch": 0.0030162290204316378,
+      "compute": 0.021272854995913804,
+      "combine": 0.010027025011368096,
+      "condenser": 0.0,
+      "total_fwd": 0.037156112026423216,
+      "total_bwd": 0.03837162896525115,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00028442894108593464,
+      "dispatch": 0.005023268982768059,
+      "compute": 0.014176508993841708,
+      "combine": 0.0030959940049797297,
+      "condenser": 0.0,
+      "total_fwd": 0.034666116000153124,
+      "total_bwd": 0.03878135001286864,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00024165306240320206,
+      "dispatch": 0.005758628016337752,
+      "compute": 0.014210691093467176,
+      "combine": 0.0030834960052743554,
+      "condenser": 0.0,
+      "total_fwd": 0.038339760969392955,
+      "total_bwd": 0.035741479950957,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00022526795510202646,
+      "dispatch": 0.0029827229445800185,
+      "compute": 0.014175503980368376,
+      "combine": 0.003173151984810829,
+      "condenser": 0.0,
+      "total_fwd": 0.030286938999779522,
+      "total_bwd": 0.034674280090257525,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00024183699861168861,
+      "dispatch": 0.0030176850268617272,
+      "compute": 0.014180563041009009,
+      "combine": 0.0030801340471953154,
+      "condenser": 0.0,
+      "total_fwd": 0.03021496196743101,
+      "total_bwd": 0.03576542902737856,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002308220136910677,
+      "dispatch": 0.0029859900241717696,
+      "compute": 0.014434244949370623,
+      "combine": 0.003375091007910669,
+      "condenser": 0.0,
+      "total_fwd": 0.0305173919769004,
+      "total_bwd": 0.0357936070067808,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00022888893727213144,
+      "dispatch": 0.003005657927133143,
+      "compute": 0.014200618024915457,
+      "combine": 0.0030540149891749024,
+      "condenser": 0.0,
+      "total_fwd": 0.030119913048110902,
+      "total_bwd": 0.0380575800081715,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00025153602473437786,
+      "dispatch": 0.0030062139267101884,
+      "compute": 0.014209529967047274,
+      "combine": 0.003009142936207354,
+      "condenser": 0.0,
+      "total_fwd": 0.030232612043619156,
+      "total_bwd": 0.04851457406766713,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00023318501189351082,
+      "dispatch": 0.0029873759485781193,
+      "compute": 0.014173378003761172,
+      "combine": 0.003044104087166488,
+      "condenser": 0.0,
+      "total_fwd": 0.030173106933943927,
+      "total_bwd": 0.03831867594271898,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.000229537021368742,
+      "dispatch": 0.002962718019261956,
+      "compute": 0.014175442047417164,
+      "combine": 0.0030963990138843656,
+      "condenser": 0.0,
+      "total_fwd": 0.031121108098886907,
+      "total_bwd": 0.035673874081112444,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002301300410181284,
+      "dispatch": 0.00298829295206815,
+      "compute": 0.014189532957971096,
+      "combine": 0.003130866913124919,
+      "condenser": 0.0,
+      "total_fwd": 0.030197621905244887,
+      "total_bwd": 0.03516495495568961,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00023157999385148287,
+      "dispatch": 0.002955392934381962,
+      "compute": 0.014222836005501449,
+      "combine": 0.0030425810255110264,
+      "condenser": 0.0,
+      "total_fwd": 0.03008783608675003,
+      "total_bwd": 0.03823638497851789,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.00023712008260190487,
+      "dispatch": 0.0029576850356534123,
+      "compute": 0.014181559905409813,
+      "combine": 0.0031039610039442778,
+      "condenser": 0.0,
+      "total_fwd": 0.030186549993231893,
+      "total_bwd": 0.0347493119770661,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    },
+    {
+      "route": 0.0002367199631407857,
+      "dispatch": 0.0030322050442919135,
+      "compute": 0.014187333988957107,
+      "combine": 0.0030908460030332208,
+      "condenser": 0.0,
+      "total_fwd": 0.030226442962884903,
+      "total_bwd": 0.036361787002533674,
+      "bytes_dispatch_total": 7516192768.0,
+      "bytes_combine_total": 7516192768.0
+    }
+  ],
+  "total_ms_median": 66.99979252880439
+}

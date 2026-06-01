@@ -1,0 +1,45 @@
+# Rebuttal W1: vanilla SFT baseline on alpaca 10K (2 epochs to match EC's 2 phases).
+
+model_name_or_path: Qwen/Qwen1.5-MoE-A2.7B
+trust_remote_code: true
+model_revision: main
+torch_dtype: bfloat16
+attn_implementation: "flash_attention_2"
+
+dataset_name: tatsu-lab/alpaca
+preprocessing_num_workers: 48
+
+bf16: true
+do_eval: false
+eval_strategy: 'no'
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+hub_model_id: Qwen1.5-MOE-sft-alpaca-2epochs
+hub_strategy: every_save
+learning_rate: 1.0e-05
+log_level: info
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine_with_min_lr
+lr_scheduler_kwargs:
+  min_lr_rate: 0.1
+packing: false
+max_length: 4096
+max_steps: -1
+num_train_epochs: 2
+output_dir: <PATH>
+overwrite_output_dir: true
+per_device_eval_batch_size: 16
+per_device_train_batch_size: 4
+push_to_hub: true
+ddp_timeout: 1800000000
+report_to:
+- "none"
+save_strategy: epoch
+save_total_limit: 1
+save_only_model: true  # avoid optimizer state bloat
+seed: 1234
+use_liger: false
+warmup_ratio: 0.1
