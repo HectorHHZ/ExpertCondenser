@@ -1,0 +1,76 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite the COLM 2026 paper below.
+title: >-
+  Preserving Long-Tailed Expert Information in Mixture-of-Experts Tuning
+abstract: >-
+  Official implementation of ExpertCondenser: an auxiliary-loss-free supervised
+  fine-tuning framework for sparse Mixture-of-Experts (MoE) large language
+  models. Combines bias-driven sparsification with always-active gated condenser
+  experts to preserve the knowledge held by long-tailed experts, outperforming
+  DenseMixer and ESFT by 2.5%+ on average across mathematical reasoning and
+  commonsenseQA benchmarks.
+type: software
+license: Apache-2.0
+repository-code: https://github.com/HectorHHZ/ExpertCondenser
+url: https://arxiv.org/abs/2604.23036
+keywords:
+  - mixture-of-experts
+  - moe
+  - supervised-fine-tuning
+  - moe-finetuning
+  - expert-routing
+  - load-balancing
+  - long-tailed-experts
+  - large-language-models
+authors:
+  - given-names: Haoze
+    family-names: He
+  - given-names: Xingyuan
+    family-names: Ding
+  - given-names: Xuan
+    family-names: Jiang
+  - given-names: Xinkai
+    family-names: Zou
+  - given-names: Alex
+    family-names: Cheng
+  - given-names: Yibo
+    family-names: Zhao
+  - given-names: Juncheng Billy
+    family-names: Li
+  - given-names: Heather
+    family-names: Miller
+# Published at COLM 2026. The proceedings entry is not indexed yet, so the
+# preferred citation points at the arXiv version, which is the record Google
+# Scholar and Semantic Scholar currently index.
+preferred-citation:
+  type: article
+  title: >-
+    Preserving Long-Tailed Expert Information in Mixture-of-Experts Tuning
+  journal: arXiv preprint arXiv:2604.23036
+  year: 2026
+  url: https://arxiv.org/abs/2604.23036
+  identifiers:
+    - type: other
+      value: arXiv:2604.23036
+      description: arXiv preprint
+    - type: doi
+      value: 10.48550/arXiv.2604.23036
+      description: arXiv DOI
+  authors:
+    - given-names: Haoze
+      family-names: He
+    - given-names: Xingyuan
+      family-names: Ding
+    - given-names: Xuan
+      family-names: Jiang
+    - given-names: Xinkai
+      family-names: Zou
+    - given-names: Alex
+      family-names: Cheng
+    - given-names: Yibo
+      family-names: Zhao
+    - given-names: Juncheng Billy
+      family-names: Li
+    - given-names: Heather
+      family-names: Miller
