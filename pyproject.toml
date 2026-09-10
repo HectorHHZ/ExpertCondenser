@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "expertcondenser"
+version = "0.1.0"
+description = "ExpertCondenser: auxiliary-loss-free SFT for sparse Mixture-of-Experts LLMs (COLM 2026)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Haoze He" },
+    { name = "Xingyuan Ding" },
+    { name = "Xuan Jiang" },
+    { name = "Xinkai Zou" },
+    { name = "Alex Cheng" },
+    { name = "Yibo Zhao" },
+    { name = "Juncheng Billy Li" },
+    { name = "Heather Miller" },
+]
+dependencies = [
+    "torch>=2.1",
+    "transformers>=4.45,<5",
+    "datasets",
+    "trl>=0.18,<0.19",
+    "accelerate",
+    "huggingface_hub",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/HectorHHZ/ExpertCondenser"
+Paper = "https://arxiv.org/abs/2604.23036"
+
+[tool.setuptools.packages.find]
+include = ["CondenserExpert*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["CondenserExpert/tests"]

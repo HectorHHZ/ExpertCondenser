@@ -2,17 +2,11 @@
 from __future__ import annotations
 
 import logging
-import sys
-from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-
-MODULE_ROOT = Path(__file__).resolve().parent.parent
-if str(MODULE_ROOT) not in sys.path:
-    sys.path.insert(0, str(MODULE_ROOT))
 
 FORCED_EXPERTS_RECORDS = {}
 
@@ -21,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 def select_forced_experts_deepseek(
     gate_module,
-    num_forced_experts: Union[int, str, None],
+    num_forced_experts: Union[int, None] = None,
+    layer_name: Optional[str] = None,
     highest: bool = False,
 ) -> torch.Tensor:
     """Select lowest-bias experts as forced activation experts for DeepSeek V2."""
@@ -30,11 +25,9 @@ def select_forced_experts_deepseek(
             logger.warning("Gate bias all zeros; delay forced expert selection")
             return gate_module.forced_expert_indices
 
-        layer_name = getattr(gate_module, "_layer_name", "unknown_layer")
-        if isinstance(num_forced_experts, str):
-            layer_name = num_forced_experts
-            forced_count = getattr(gate_module, "num_forced_experts", 0)
-        elif isinstance(num_forced_experts, int) and num_forced_experts > 0:
+        if layer_name is None:
+            layer_name = getattr(gate_module, "_layer_name", "unknown_layer")
+        if isinstance(num_forced_experts, int) and num_forced_experts > 0:
             forced_count = num_forced_experts
         else:
             forced_count = getattr(gate_module, "num_forced_experts", 0)
@@ -155,7 +148,7 @@ def patch_deepseek_model(
 
                     if getattr(model_args, "enable_forced_experts", False) and hasattr(self, "forced_expert_indices"):
                         if not getattr(self, "forced_experts_initialized", False):
-                            select_forced_experts_deepseek(self, getattr(self, "_layer_name", None))
+                            select_forced_experts_deepseek(self, layer_name=getattr(self, "_layer_name", None))
                         forced = self.forced_expert_indices.to(logits.device)
                         if (forced >= 0).any():
                             batch_n = topk_weight.shape[0]
