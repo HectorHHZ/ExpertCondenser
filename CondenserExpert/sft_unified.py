@@ -414,8 +414,6 @@ def build_model(
     model_id = model_args.model_name_or_path
 
     # dtype / quantization
-    # `torch_dtype` may be a string ("bfloat16", "auto"), None, or an actual torch.dtype.
-    # Only translate real dtype names via getattr; "auto"/None pass through unchanged.
     dtype = model_args.torch_dtype
     torch_dtype = (
         getattr(torch, dtype) if isinstance(dtype, str) and dtype != "auto" else dtype
