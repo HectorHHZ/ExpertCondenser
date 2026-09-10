@@ -414,8 +414,10 @@ def build_model(
     model_id = model_args.model_name_or_path
 
     # dtype / quantization
-    dtype = model_args.torch_dtype if model_args.torch_dtype not in (None, "auto") else model_args.torch_dtype
-    torch_dtype = getattr(torch, dtype) if isinstance(dtype, str) else dtype
+    dtype = model_args.torch_dtype
+    torch_dtype = (
+        getattr(torch, dtype) if isinstance(dtype, str) and dtype != "auto" else dtype
+    )
 
     quantization_config = None
     if model_id not in {"openai/gpt-oss-20b", "Qwen/Qwen3-30B-A3B"}:
@@ -474,18 +476,21 @@ def build_model(
             load_moe_bias_states(model, bias_source)
         return model
 
-    # --- Qwen (Qwen2/Qwen1.5 MoE) ---
-    if "qwen1.5" in model_args.model_name_or_path.lower():
+    # --- Qwen (Qwen1.5-MoE / Qwen2-MoE, both use the Qwen2MoE architecture) ---
+    if model_family == "qwen":
         import transformers.models.qwen2_moe.modeling_qwen2_moe as qwen2_moe_module
 
-        
         qwen2_moe_module.Qwen2MoeSparseMoeBlock = AuxFreeQwen2MoeSparseMoeBlock
         logger.info("✅ Using standard aux-free routing for Qwen MoE blocks.")
 
         config = AutoConfig.from_pretrained(model_id)
+        config.bias_update_speed = model_args.bias_update_speed
+        config.enable_forced_experts = model_args.enable_forced_experts
+        config.num_forced_experts = model_args.num_forced_experts
+        config.use_cache = not training_args.gradient_checkpointing
+
         architecture = getattr(transformers, config.architectures[0])
-        # config comparison
-        model = architecture.from_pretrained(model_id, **training_args.model_init_kwargs)
+        model = architecture.from_pretrained(model_id, config=config, **training_args.model_init_kwargs)
         model.config.bias_update_speed = model_args.bias_update_speed
 
         if model_args.enable_forced_experts:
