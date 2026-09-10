@@ -46,9 +46,7 @@ __all__ = [
     "DEEPSEEK_FORCED_EXPERTS_RECORDS",
     "select_forced_experts_deepseek",
     "AuxFreeOlmoeSparseMoeBlock",
-    "AuxFreeOlmoeSparseMoeBlockSinkhorn",
     "OLMOE_FORCED_EXPERTS_RECORDS",
     "AuxFreeQwen2MoeSparseMoeBlock",
-    "AuxFreeQwen2MoeSparseMoeBlockSinkhorn",
     "QWEN_FORCED_EXPERTS_RECORDS",
 ]
