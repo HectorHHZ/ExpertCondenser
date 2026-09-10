@@ -494,6 +494,35 @@ def build_model(
     return model
 
 
+def _mark_moe_blocks_as_zero3_leaves(model: torch.nn.Module, model_family: str) -> None:
+    """Mark whole MoE blocks as ZeRO-3 leaf modules.
+
+    Under ZeRO-3, sparse expert dispatch makes different ranks gather
+    different expert parameters in different orders, which deadlocks
+    training at the first step. DeepSpeed's fix is to treat the entire
+    MoE block as one leaf so all of its parameters are gathered together
+    (see deepspeed.utils.set_z3_leaf_modules). Without DeepSpeed
+    installed, or when ZeRO-3 is not used, this is a no-op.
+    """
+    try:
+        from deepspeed.utils import set_z3_leaf_modules
+    except ImportError:
+        return
+
+    leaf_classes = {
+        "olmoe": {AuxFreeOlmoeSparseMoeBlock},
+        "qwen": {AuxFreeQwen2MoeSparseMoeBlock},
+    }.get(model_family, set())
+    if model_family == "deepseek":
+        # The DeepSeek-V2 classes come from trust_remote_code; look them up
+        # on the instantiated model.
+        leaf_classes = {type(m) for m in model.modules() if type(m).__name__ == "DeepseekV2MoE"}
+
+    if leaf_classes:
+        set_z3_leaf_modules(model, list(leaf_classes))
+        logger.info("Marked %s as ZeRO-3 leaf modules", [c.__name__ for c in leaf_classes])
+
+
 def main(script_args, training_args, model_args) -> None:
     set_seed(training_args.seed)
 
@@ -559,6 +588,7 @@ def main(script_args, training_args, model_args) -> None:
         data_collator = None
 
     model = build_model(model_family, model_args, training_args)
+    _mark_moe_blocks_as_zero3_leaves(model, model_family)
     
     if (not dist.is_initialized()) or dist.get_rank() == 0:
         try:
