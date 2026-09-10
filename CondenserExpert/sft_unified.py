@@ -55,7 +55,7 @@ from CondenserExpert.utils import (
     patch_deepseek_model,
     save_moe_bias_states,
 )
-from CondenserExpert.utils.callbacks import get_callbacks
+from CondenserExpert.utils.callbacks import MoeBiasUpdateCallback, get_callbacks
 from CondenserExpert.utils.wandb_logging import init_wandb_training
 from trl import (
     ModelConfig,
@@ -360,10 +360,6 @@ def save_forced_experts_records(
 
 class CustomSFTTrainer(SFTTrainer):
     """Custom trainer that preserves the messages column."""
-    def __init__(self, *args, update_bias_after_step: bool = False, bias_module_types=tuple(), **kwargs):
-        self.update_bias_after_step = update_bias_after_step
-        self.bias_module_types = bias_module_types
-        super().__init__(*args, **kwargs)
 
     def _prepare_dataset(self, dataset, *args, **kwargs):
         if "messages" in dataset.column_names:
@@ -373,25 +369,6 @@ class CustomSFTTrainer(SFTTrainer):
                 dataset = dataset.rename_column("_messages", "messages")
             return dataset
         return super()._prepare_dataset(dataset, *args, **kwargs)
-
-    def training_step(self, model, inputs, num_items_in_batch: Optional[int] = None):  
-        if num_items_in_batch is not None:
-            loss = super().training_step(model, inputs, num_items_in_batch)
-        else:
-            loss = super().training_step(model, inputs)
-
-        if (
-            self.update_bias_after_step
-            and self.bias_module_types
-            and (self.state.global_step + 1) % self.args.gradient_accumulation_steps == 0
-        ):
-            self._update_moe_biases(model)
-        return loss
-
-    def _update_moe_biases(self, model: torch.nn.Module) -> None:
-        for module in model.modules():
-            if isinstance(module, self.bias_module_types) and hasattr(module, "update_bias_after_step"):
-                module.update_bias_after_step()
 
 
 def build_model(
@@ -566,6 +543,12 @@ def main(script_args, training_args, model_args) -> None:
     if model_family in {"qwen", "olmoe"}:
         tokenizer.padding_side = "left"
         data_collator = DataCollatorForChatML(tokenizer=tokenizer, max_length=training_args.max_length)
+        if training_args.remove_unused_columns:
+            # DataCollatorForChatML reads the raw `messages` column at collate time;
+            # with the default remove_unused_columns=True the Trainer drops it from
+            # the DataLoader and training crashes with KeyError: 'messages'.
+            logger.info("Forcing remove_unused_columns=False for DataCollatorForChatML")
+            training_args.remove_unused_columns = False
     else:
         data_collator = None
 
@@ -580,13 +563,12 @@ def main(script_args, training_args, model_args) -> None:
     ############################
     # Initialize the SFT Trainer
     ############################
-    bias_module_types = tuple()
+    callbacks = get_callbacks(training_args, model_args)
     if model_family == "olmoe":
-        bias_module_types = AuxFreeOlmoeSparseMoeBlock
+        # OLMoE blocks defer their aux-free bias update; apply it once per optimizer step.
+        callbacks.append(MoeBiasUpdateCallback(AuxFreeOlmoeSparseMoeBlock))
 
-    # trainer_class = CustomSFTTrainer if data_collator is not None else SFTTrainer
-    trainer_class = CustomSFTTrainer
-    trainer = trainer_class(
+    trainer = CustomSFTTrainer(
         model=model,
         args=training_args,
         data_collator=data_collator,
@@ -594,9 +576,7 @@ def main(script_args, training_args, model_args) -> None:
         eval_dataset=eval_dataset if training_args.eval_strategy != "no" else None,
         processing_class=tokenizer,
         peft_config=get_peft_config(model_args),
-        callbacks=get_callbacks(training_args, model_args),
-        update_bias_after_step=(model_family == "olmoe"),
-        bias_module_types=bias_module_types,
+        callbacks=callbacks,
     )
     
     hub_repo_id = getattr(training_args, "hub_model_id", None)
