@@ -82,7 +82,6 @@ class MoeBiasUpdateCallback(TrainerCallback):
     """
 
     def __init__(self, module_types) -> None:
-        # Accept a single class or a tuple of classes.
         self.module_types = module_types if isinstance(module_types, tuple) else (module_types,)
 
     def on_optimizer_step(self, args, state, control, model=None, **kwargs):

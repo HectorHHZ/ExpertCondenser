@@ -544,9 +544,6 @@ def main(script_args, training_args, model_args) -> None:
         tokenizer.padding_side = "left"
         data_collator = DataCollatorForChatML(tokenizer=tokenizer, max_length=training_args.max_length)
         if training_args.remove_unused_columns:
-            # DataCollatorForChatML reads the raw `messages` column at collate time;
-            # with the default remove_unused_columns=True the Trainer drops it from
-            # the DataLoader and training crashes with KeyError: 'messages'.
             logger.info("Forcing remove_unused_columns=False for DataCollatorForChatML")
             training_args.remove_unused_columns = False
     else:
