@@ -571,7 +571,6 @@ def main(script_args, training_args, model_args) -> None:
     ############################
     callbacks = get_callbacks(training_args, model_args)
     if model_family == "olmoe":
-        # OLMoE blocks defer their aux-free bias update; apply it once per optimizer step.
         callbacks.append(MoeBiasUpdateCallback(AuxFreeOlmoeSparseMoeBlock))
 
     trainer = CustomSFTTrainer(

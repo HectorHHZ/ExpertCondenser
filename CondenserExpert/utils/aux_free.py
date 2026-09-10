@@ -29,8 +29,6 @@ class AuxFreeMoeMixin:
     ``_init_aux_free`` is called (upstream MoE blocks all do).
     """
 
-    #: Per-family record dict, set by each patch module so records stay
-    #: separated per family (see FORCED_EXPERTS_RECORDS in the patch modules).
     FORCED_EXPERTS_RECORDS: Dict[str, dict] = {}
 
     def _init_aux_free(self, config) -> None:
@@ -38,7 +36,6 @@ class AuxFreeMoeMixin:
         self.enable_forced_experts = getattr(config, "enable_forced_experts", False)
         self.num_forced_experts = getattr(config, "num_forced_experts", 2)
 
-        # register_buffer keeps the state in checkpoints and works with DDP.
         self.register_buffer("bias", torch.zeros(self.num_experts), persistent=True)
 
         if self.enable_forced_experts:

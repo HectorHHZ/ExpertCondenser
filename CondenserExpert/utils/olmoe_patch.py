@@ -41,9 +41,6 @@ class AuxFreeOlmoeSparseMoeBlock(AuxFreeMoeMixin, OlmoeSparseMoeBlock):
         """DDP-compatible aux-free forward using in-place modification."""
         self._sync_bias_device(hidden_states)
 
-        # Run the upstream forward so every expert participates in the autograd
-        # graph (keeps DDP/DeepSpeed happy), then overwrite the result in place
-        # with the aux-free routing outcome below.
         parent_result, parent_router_logits = super().forward(hidden_states)
 
         batch_size, sequence_length, hidden_dim = hidden_states.shape
