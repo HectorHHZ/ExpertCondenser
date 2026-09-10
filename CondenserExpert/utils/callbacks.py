@@ -30,7 +30,7 @@ def is_slurm_available() -> bool:
     try:
         subprocess.run(["sinfo"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return True
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
 
