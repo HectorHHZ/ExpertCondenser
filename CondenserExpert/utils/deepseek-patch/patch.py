@@ -123,8 +123,13 @@ def patch_deepseek_model(
                         # keep bias on same device
                         logits = logits + self.bias.to(logits.device)
 
+                    # Softmax first, then group-mask the probabilities, then top-k --
+                    # the same order as upstream DeepSeek-V2. Masking the *logits* with
+                    # 0.0 before softmax would give excluded experts a weight of e^0,
+                    # letting them outrank allowed experts with negative logits.
+                    scores = logits.softmax(dim=-1, dtype=torch.float32)
                     if getattr(self, "topk_method", "greedy") == "group_limited_greedy":
-                        group_scores = logits.view(bsz * seq_len, self.n_group, -1).max(dim=-1).values
+                        group_scores = scores.view(bsz * seq_len, self.n_group, -1).max(dim=-1).values
                         group_idx = torch.topk(group_scores, k=self.topk_group, dim=-1, sorted=False)[1]
                         group_mask = torch.zeros_like(group_scores)
                         group_mask.scatter_(1, group_idx, 1)
@@ -133,16 +138,16 @@ def patch_deepseek_model(
                             .expand(bsz * seq_len, self.n_group, self.n_routed_experts // self.n_group)
                             .reshape(bsz * seq_len, -1)
                         )
-                        masked = logits.masked_fill(~score_mask.bool(), 0.0)
+                        masked_scores = scores.masked_fill(~score_mask.bool(), 0.0)
                         topk_weight, topk_idx = torch.topk(
-                            masked.softmax(dim=-1, dtype=torch.float32),
+                            masked_scores,
                             k=self.top_k,
                             dim=-1,
                             sorted=False,
                         )
                     else:
                         topk_weight, topk_idx = torch.topk(
-                            logits.softmax(dim=-1, dtype=torch.float32),
+                            scores,
                             k=self.top_k,
                             dim=-1,
                             sorted=False,
