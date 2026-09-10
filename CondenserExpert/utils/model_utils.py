@@ -25,8 +25,6 @@ def get_tokenizer(
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
     elif auto_set_chat_template and tokenizer.chat_template is None:
-        # Note: tokenizer.get_chat_template() raises ValueError when no template is
-        # set, so inspect the attribute directly.
         tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
 
     return tokenizer

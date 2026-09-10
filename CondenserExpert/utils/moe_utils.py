@@ -61,7 +61,6 @@ def load_moe_bias_states(model: torch.nn.Module, model_path_or_repo: str) -> boo
 
     loaded_count = 0
     for module_name, module in model.named_modules():
-        # e.g. nn.Linear(bias=False) exposes a `bias` attribute that is None
         if not isinstance(getattr(module, "bias", None), torch.Tensor):
             continue
         bias_info = bias_states.get(module_name)
