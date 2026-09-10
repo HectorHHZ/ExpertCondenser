@@ -43,6 +43,10 @@ from datasets import Dataset, DatasetDict, load_dataset
 from transformers import AutoConfig, AutoModelForCausalLM, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from CondenserExpert.configs import SFTConfig
 from CondenserExpert.utils import (
     DEEPSEEK_FORCED_EXPERTS_RECORDS,
@@ -55,7 +59,7 @@ from CondenserExpert.utils import (
     patch_deepseek_model,
     save_moe_bias_states,
 )
-from CondenserExpert.utils.callbacks import get_callbacks
+from CondenserExpert.utils.callbacks import MoeBiasUpdateCallback, get_callbacks
 from CondenserExpert.utils.wandb_logging import init_wandb_training
 from trl import (
     ModelConfig,
@@ -360,10 +364,6 @@ def save_forced_experts_records(
 
 class CustomSFTTrainer(SFTTrainer):
     """Custom trainer that preserves the messages column."""
-    def __init__(self, *args, update_bias_after_step: bool = False, bias_module_types=tuple(), **kwargs):
-        self.update_bias_after_step = update_bias_after_step
-        self.bias_module_types = bias_module_types
-        super().__init__(*args, **kwargs)
 
     def _prepare_dataset(self, dataset, *args, **kwargs):
         if "messages" in dataset.column_names:
@@ -373,25 +373,6 @@ class CustomSFTTrainer(SFTTrainer):
                 dataset = dataset.rename_column("_messages", "messages")
             return dataset
         return super()._prepare_dataset(dataset, *args, **kwargs)
-
-    def training_step(self, model, inputs, num_items_in_batch: Optional[int] = None):  
-        if num_items_in_batch is not None:
-            loss = super().training_step(model, inputs, num_items_in_batch)
-        else:
-            loss = super().training_step(model, inputs)
-
-        if (
-            self.update_bias_after_step
-            and self.bias_module_types
-            and (self.state.global_step + 1) % self.args.gradient_accumulation_steps == 0
-        ):
-            self._update_moe_biases(model)
-        return loss
-
-    def _update_moe_biases(self, model: torch.nn.Module) -> None:
-        for module in model.modules():
-            if isinstance(module, self.bias_module_types) and hasattr(module, "update_bias_after_step"):
-                module.update_bias_after_step()
 
 
 def build_model(
@@ -414,8 +395,10 @@ def build_model(
     model_id = model_args.model_name_or_path
 
     # dtype / quantization
-    dtype = model_args.torch_dtype if model_args.torch_dtype not in (None, "auto") else model_args.torch_dtype
-    torch_dtype = getattr(torch, dtype) if isinstance(dtype, str) else dtype
+    dtype = model_args.torch_dtype
+    torch_dtype = (
+        getattr(torch, dtype) if isinstance(dtype, str) and dtype != "auto" else dtype
+    )
 
     quantization_config = None
     if model_id not in {"openai/gpt-oss-20b", "Qwen/Qwen3-30B-A3B"}:
@@ -474,18 +457,21 @@ def build_model(
             load_moe_bias_states(model, bias_source)
         return model
 
-    # --- Qwen (Qwen2/Qwen1.5 MoE) ---
-    if "qwen1.5" in model_args.model_name_or_path.lower():
+    # --- Qwen (Qwen1.5-MoE / Qwen2-MoE, both use the Qwen2MoE architecture) ---
+    if model_family == "qwen":
         import transformers.models.qwen2_moe.modeling_qwen2_moe as qwen2_moe_module
 
-        
         qwen2_moe_module.Qwen2MoeSparseMoeBlock = AuxFreeQwen2MoeSparseMoeBlock
         logger.info("✅ Using standard aux-free routing for Qwen MoE blocks.")
 
         config = AutoConfig.from_pretrained(model_id)
+        config.bias_update_speed = model_args.bias_update_speed
+        config.enable_forced_experts = model_args.enable_forced_experts
+        config.num_forced_experts = model_args.num_forced_experts
+        config.use_cache = not training_args.gradient_checkpointing
+
         architecture = getattr(transformers, config.architectures[0])
-        # config comparison
-        model = architecture.from_pretrained(model_id, **training_args.model_init_kwargs)
+        model = architecture.from_pretrained(model_id, config=config, **training_args.model_init_kwargs)
         model.config.bias_update_speed = model_args.bias_update_speed
 
         if model_args.enable_forced_experts:
@@ -506,6 +492,35 @@ def build_model(
     model.config.bias_update_speed = model_args.bias_update_speed
     
     return model
+
+
+def _mark_moe_blocks_as_zero3_leaves(model: torch.nn.Module, model_family: str) -> None:
+    """Mark whole MoE blocks as ZeRO-3 leaf modules.
+
+    Under ZeRO-3, sparse expert dispatch makes different ranks gather
+    different expert parameters in different orders, which deadlocks
+    training at the first step. DeepSpeed's fix is to treat the entire
+    MoE block as one leaf so all of its parameters are gathered together
+    (see deepspeed.utils.set_z3_leaf_modules). Without DeepSpeed
+    installed, or when ZeRO-3 is not used, this is a no-op.
+    """
+    try:
+        from deepspeed.utils import set_z3_leaf_modules
+    except ImportError:
+        return
+
+    leaf_classes = {
+        "olmoe": {AuxFreeOlmoeSparseMoeBlock},
+        "qwen": {AuxFreeQwen2MoeSparseMoeBlock},
+    }.get(model_family, set())
+    if model_family == "deepseek":
+        # The DeepSeek-V2 classes come from trust_remote_code; look them up
+        # on the instantiated model.
+        leaf_classes = {type(m) for m in model.modules() if type(m).__name__ == "DeepseekV2MoE"}
+
+    if leaf_classes:
+        set_z3_leaf_modules(model, list(leaf_classes))
+        logger.info("Marked %s as ZeRO-3 leaf modules", [c.__name__ for c in leaf_classes])
 
 
 def main(script_args, training_args, model_args) -> None:
@@ -566,10 +581,14 @@ def main(script_args, training_args, model_args) -> None:
     if model_family in {"qwen", "olmoe"}:
         tokenizer.padding_side = "left"
         data_collator = DataCollatorForChatML(tokenizer=tokenizer, max_length=training_args.max_length)
+        if training_args.remove_unused_columns:
+            logger.info("Forcing remove_unused_columns=False for DataCollatorForChatML")
+            training_args.remove_unused_columns = False
     else:
         data_collator = None
 
     model = build_model(model_family, model_args, training_args)
+    _mark_moe_blocks_as_zero3_leaves(model, model_family)
     
     if (not dist.is_initialized()) or dist.get_rank() == 0:
         try:
@@ -580,13 +599,11 @@ def main(script_args, training_args, model_args) -> None:
     ############################
     # Initialize the SFT Trainer
     ############################
-    bias_module_types = tuple()
+    callbacks = get_callbacks(training_args, model_args)
     if model_family == "olmoe":
-        bias_module_types = AuxFreeOlmoeSparseMoeBlock
+        callbacks.append(MoeBiasUpdateCallback(AuxFreeOlmoeSparseMoeBlock))
 
-    # trainer_class = CustomSFTTrainer if data_collator is not None else SFTTrainer
-    trainer_class = CustomSFTTrainer
-    trainer = trainer_class(
+    trainer = CustomSFTTrainer(
         model=model,
         args=training_args,
         data_collator=data_collator,
@@ -594,9 +611,7 @@ def main(script_args, training_args, model_args) -> None:
         eval_dataset=eval_dataset if training_args.eval_strategy != "no" else None,
         processing_class=tokenizer,
         peft_config=get_peft_config(model_args),
-        callbacks=get_callbacks(training_args, model_args),
-        update_bias_after_step=(model_family == "olmoe"),
-        bias_module_types=bias_module_types,
+        callbacks=callbacks,
     )
     
     hub_repo_id = getattr(training_args, "hub_model_id", None)

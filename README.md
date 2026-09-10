@@ -76,11 +76,13 @@ Aux-free routing patches are provided for three MoE families:
 
 | Model family | Patch |
 | --- | --- |
-| DeepSeek-V2 / DeepSeek-V2-Lite | `CondenserExpert/utils/deepseek-patch/patch.py` |
-| OLMoE | `CondenserExpert/utils/olmoe-patch/patch.py` |
-| Qwen2-MoE | `CondenserExpert/utils/qwen-patch/patch.py` |
+| DeepSeek-V2 / DeepSeek-V2-Lite | `CondenserExpert/utils/deepseek_patch.py` |
+| OLMoE | `CondenserExpert/utils/olmoe_patch.py` |
+| Qwen2-MoE | `CondenserExpert/utils/qwen_patch.py` |
 
 Each patch has a corresponding unit test under `CondenserExpert/tests/`.
+Logic shared by the OLMoE and Qwen patches (bias buffer, forced-expert
+selection, bias update rule) lives in `CondenserExpert/utils/aux_free.py`.
 
 ## Project Structure
 
@@ -90,16 +92,17 @@ CondenserExpert/
 ├── configs.py              # Extended SFTConfig and GRPOConfig
 ├── utils/
 │   ├── __init__.py         # Package exports (patches, bias utilities)
+│   ├── aux_free.py         # Shared aux-free mixin (bias, forced experts)
 │   ├── moe_utils.py        # MoE bias state save/load helpers
 │   ├── model_utils.py      # Tokenizer and model loading utilities
-│   ├── callbacks.py        # Training callbacks (hub push, benchmarks)
+│   ├── callbacks.py        # Training callbacks (hub push, bias updates)
 │   ├── evaluation.py       # LightEval benchmark integration
 │   ├── hub.py              # Hugging Face Hub upload utilities
 │   ├── import_utils.py     # Optional dependency checks
 │   ├── wandb_logging.py    # Weights & Biases setup
-│   ├── deepseek-patch/     # Aux-free routing patch for DeepSeek V2
-│   ├── olmoe-patch/        # Aux-free routing patch for OLMoE
-│   └── qwen-patch/         # Aux-free routing patch for Qwen2-MoE
+│   ├── deepseek_patch.py   # Aux-free routing patch for DeepSeek V2
+│   ├── olmoe_patch.py      # Aux-free routing patch for OLMoE
+│   └── qwen_patch.py       # Aux-free routing patch for Qwen2-MoE
 └── tests/                  # Unit tests for each patch
 ```
 
@@ -107,7 +110,14 @@ CondenserExpert/
 ## Installation
 
 ```bash
-pip install torch transformers datasets trl huggingface_hub accelerate
+pip install -e .        # installs torch, transformers, datasets, trl, accelerate, huggingface_hub
+```
+
+Or with Docker:
+
+```bash
+docker build -t expertcondenser .
+docker run --rm expertcondenser pytest CondenserExpert/tests/
 ```
 
 ## Usage
