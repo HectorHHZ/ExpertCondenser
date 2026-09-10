@@ -43,6 +43,13 @@ from datasets import Dataset, DatasetDict, load_dataset
 from transformers import AutoConfig, AutoModelForCausalLM, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
+# Allow running this file directly (e.g. `python CondenserExpert/sft_unified.py` or via
+# `accelerate launch`): Python puts the script's own directory on sys.path, not the repo
+# root, so the `CondenserExpert.*` imports below would otherwise fail.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from CondenserExpert.configs import SFTConfig
 from CondenserExpert.utils import (
     DEEPSEEK_FORCED_EXPERTS_RECORDS,
