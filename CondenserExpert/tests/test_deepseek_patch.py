@@ -12,7 +12,7 @@ def _load_deepseek_patch_module():
     if module_name in sys.modules:
         return sys.modules[module_name]
 
-    module_path = Path(__file__).resolve().parents[1] / "deepseek-patch" / "patch.py"
+    module_path = Path(__file__).resolve().parents[1] / "utils" / "deepseek-patch" / "patch.py"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
