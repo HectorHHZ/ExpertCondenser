@@ -1,6 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 
-from trl import ModelConfig
+from trl import ModelConfig, get_kbit_device_map, get_quantization_config
 
 from ..configs import GRPOConfig, SFTConfig
 import torch
@@ -16,7 +16,7 @@ def get_tokenizer(
         model_args.model_name_or_path,
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
-        fast_tokenizer=True,
+        use_fast=True,
     )
     if model_args.model_name_or_path in ["allenai/OLMoE-1B-7B-0125","lmsys/vicuna-7b-v1.3"]:
         tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
@@ -24,7 +24,7 @@ def get_tokenizer(
 
     if training_args.chat_template is not None:
         tokenizer.chat_template = training_args.chat_template
-    elif auto_set_chat_template and tokenizer.get_chat_template() is None:
+    elif auto_set_chat_template and tokenizer.chat_template is None:
         tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
 
     return tokenizer

@@ -30,7 +30,7 @@ def is_slurm_available() -> bool:
     try:
         subprocess.run(["sinfo"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return True
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
 
@@ -69,6 +69,27 @@ class PushToHubRevisionCallback(TrainerCallback):
                     run_benchmark_jobs(dummy_config, self.model_config)
 
                 future.add_done_callback(run_benchmark_callback)
+
+
+class MoeBiasUpdateCallback(TrainerCallback):
+    """Apply deferred aux-free bias updates exactly once per optimizer step.
+
+    MoE blocks that accumulate expert usage during forward (e.g.
+    AuxFreeOlmoeSparseMoeBlock) expose ``update_bias_after_step``; this
+    callback invokes it right after each ``optimizer.step()``, which is the
+    cadence the aux-free method expects regardless of the gradient
+    accumulation setting.
+    """
+
+    def __init__(self, module_types) -> None:
+        self.module_types = module_types if isinstance(module_types, tuple) else (module_types,)
+
+    def on_optimizer_step(self, args, state, control, model=None, **kwargs):
+        if model is None:
+            return
+        for module in model.modules():
+            if isinstance(module, self.module_types) and hasattr(module, "update_bias_after_step"):
+                module.update_bias_after_step()
 
 
 CALLBACKS = {
